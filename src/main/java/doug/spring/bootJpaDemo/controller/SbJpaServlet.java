@@ -103,15 +103,16 @@ public class SbJpaServlet extends HttpServlet {
     Customer2  c2		= null;
     Order	   order    = null;
     Order2     o2       = null;
-    OrderItem orderItem = null;
+    OrderItem  orderItem= null;
     OrderItem2 oi2		= null;
-    OneOrder  oneOrder  = null;
-    CustOrder custOrder = null;
-    Summary	  summary   = null;
+    OneOrder   oneOrder = null;
+    CustOrder  custOrder= null;
+    Summary	   summary  = null;
     String requestData  = null;	// request data (JSON string)
     String responseData = null;	// response data (JSON string)
     String whatEvent    = null;
     String userName     = null;
+    
     @Autowired UserService userService;
     @Autowired CustomerService customerService;
     @Autowired EmployeeService employeeService;
