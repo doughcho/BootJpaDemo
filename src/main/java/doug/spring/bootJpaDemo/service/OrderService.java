@@ -25,14 +25,14 @@ public class OrderService {
 	
 	public List<IdAndDate> findByCustId(int custId) {
 		List<IdAndDate> idAndDates = new ArrayList<>();
-//		orderDao.findByCustId(custId).forEach(e -> idAndDates.add(e));
 		List<Order> o = orderDao.findByCustId(custId);
-		IdAndDate custOrder = new IdAndDate();		
 		int count = o.size();
 		for (int i = 0; i < count; i++) {
-			custOrder.orderId = o.get(i).getOrderId();
-			custOrder.orderDt = o.get(i).getOrderDt();
-			idAndDates.add(custOrder);
+			IdAndDate iad = new IdAndDate();		
+			iad.orderId = o.get(i).getOrderId();
+			iad.orderDt = o.get(i).getOrderDt();
+			System.out.println("orderId is "+iad.orderId+", orderDt is "+iad.orderDt);
+			idAndDates.add(iad);
 		}
 		return idAndDates;
 	}

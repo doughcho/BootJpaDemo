@@ -11,9 +11,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Cookie;    			// added for Cookie
 
-import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
 import com.google.gson.Gson;					// added for JSON (Gson)
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -21,9 +20,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;	
 import com.google.gson.JsonParseException;
 
-import java.sql.*;                				// added for JDBC
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,13 +34,9 @@ import doug.spring.bootJpaDemo.service.*;
 @WebServlet(description = "Servlet for Spring Data JPA project", urlPatterns = { "/SbJpaServlet" })
 public class SbJpaServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	static Date today;		// java.sql.Date (not java.util.Date)
+	static String today;
     static final float TAX_RATE = 0.0785f;	// temporary for the sales tax calculation
 
-	class Authenti {
-		String userId;
-		String passwd;
-	}
 	class Customer2 {
 		Customer customer;
 		String emplName;
@@ -58,6 +54,9 @@ public class SbJpaServlet extends HttpServlet {
     	String emplName;	// JOIN (employees)
     	public Order2 () {
     		this.order = new Order();
+    		this.itemCnt = 0;
+    		this.subTotal = 0.0f;
+    		this.taxAmt   = 0.0f;
     		this.custName = "";
     		this.emplName = "";
     	}
@@ -81,25 +80,6 @@ public class SbJpaServlet extends HttpServlet {
     		this.ord.itemCnt = count;
     	}
     }
-    class Summary {
-    	int    orderId;
-    	int    seq;			// for an orderItem added (15)
-    	int    itemCnt;
-    	float  subTotal;	
-    	float  taxAmt;
-    	String updName;
-    	Date   updDt;
-    	public Summary(int orderId, int seq) {
-    		this.orderId  = orderId;
-    		this.seq      = seq;
-    		this.itemCnt  = 0;
-    		this.subTotal = 0;
-    		this.taxAmt   = 0;
-    		this.updName  = "";
-    		this.updDt    = null;
-    	}
-    }
-    Customer   customer = null;
     Customer2  c2		= null;
     Order	   order    = null;
     Order2     o2       = null;
@@ -107,34 +87,46 @@ public class SbJpaServlet extends HttpServlet {
     OrderItem2 oi2		= null;
     OneOrder   oneOrder = null;
     CustOrder  custOrder= null;
-    Summary	   summary  = null;
     String requestData  = null;	// request data (JSON string)
     String responseData = null;	// response data (JSON string)
     String whatEvent    = null;
     String userName     = null;
     
-    @Autowired UserService userService;
+/*  @Autowired UserService userService;
     @Autowired CustomerService customerService;
     @Autowired EmployeeService employeeService;
     @Autowired ItemService itemService;
     @Autowired OrderService orderService;
-    @Autowired OrderItemService orderItemService;
+    @Autowired OrderItemService orderItemService; */
+    private static UserService userService;
+    private static CustomerService customerService;
+    private static EmployeeService employeeService;
+    private static ItemService itemService;
+    private static OrderService orderService;
+    private static OrderItemService orderItemService;
 
     public SbJpaServlet() {
     	super();  	
-    	Calendar cal = new GregorianCalendar();
-    	today = new Date(cal.getTimeInMillis());	// java.sql.Date
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        Date date = Calendar.getInstance().getTime();
+        today = dateFormat.format(date);
     }
 
     @Override
     public void init(ServletConfig config) throws ServletException {
 	    super.init(config);
-    	System.out.println("init() of SbServlet");
+	    userService 	= (UserService) 	BeanUtils.getBean("userService");
+	    customerService = (CustomerService) BeanUtils.getBean("customerService");
+	    employeeService = (EmployeeService) BeanUtils.getBean("employeeService");
+	    itemService 	= (ItemService) 	BeanUtils.getBean("itemService");
+	    orderService 	= (OrderService) 	BeanUtils.getBean("orderService");
+	    orderItemService= (OrderItemService)BeanUtils.getBean("orderItemService");
+    	System.out.println("init() of SbJpaServlet");
     }
 
     @Override
 	public void destroy() {
-    	System.out.println("destroy() of SbServlet");
+    	System.out.println("destroy() of SbJpaServlet");
 	}
     
 //  Handles MySQL database through Spring Data JPA (service)
@@ -191,7 +183,7 @@ public class SbJpaServlet extends HttpServlet {
 		if (!c.isPresent()) return false;
 		Optional<Employee> e = employeeService.findById(c.get().getEmplId());
 		if (!e.isPresent()) return false;
-		Customer2 c2 = new Customer2(e.get().getEmplName());
+		c2 = new Customer2(e.get().getEmplName());
 		c2.customer  = c.get();
 	    return true;
 	}
@@ -272,7 +264,7 @@ public class SbJpaServlet extends HttpServlet {
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 //		response.getWriter().append("Served at: ").append(request.getContextPath());
-//		System.out.println("doGet() of SbServlet");		        
+//		System.out.println("doGet() of SbJpaServlet");		        
 		doPost(request, response);
 	}
 
@@ -281,13 +273,14 @@ public class SbJpaServlet extends HttpServlet {
 		String wellDone = "N";		// for cookie "wellDone"
 		int orderId = 0;
 		int custId  = 0;
-//		System.out.println("doPost() of SbServlet");		        
+//		System.out.println("doPost() of SbJpaServlet");		        
 		try {
 			requestData = request.getParameter("json");
 			System.out.println("request data is " + requestData);
 			// prepare for the data parsing (common routine)
 			@SuppressWarnings("deprecation")
 			JsonParser parser = new JsonParser();
+			@SuppressWarnings("deprecation")
 			JsonElement element = parser.parse(requestData);		
 			JsonObject json = new JsonObject();
 			Gson gson = new Gson();	
@@ -303,27 +296,27 @@ public class SbJpaServlet extends HttpServlet {
 			switch (whatEvent) {
 				case "00": 	// Authenticate a user				
 					json = (JsonObject) element;
-					Authenti authenti = new Authenti();
-					authenti = gson.fromJson(json, Authenti.class);
-					String userId = authenti.userId;
-					String passwd = authenti.passwd;
+					String userId = json.getAsJsonObject().get("userId").getAsString();
+					String passwd = json.getAsJsonObject().get("passwd").getAsString();
 					int status = authenticationCheck(userId, passwd);					
 					String path = request.getContextPath();		
 					String strStatus = Integer.toString(status);
 					Cookie cookie = new Cookie("authStat", strStatus);
 					cookie.setPath(path);   // set cookie's usage range
-					cookie.setMaxAge(-1);	// do not delete until browser finishes	
+					cookie.setMaxAge(-1);	// do not delete until browser finishes
 					response.addCookie(cookie);
-					String name = userName.replace(' ',  '_');    // Cookie value should not include space
-					cookie = new Cookie("userName", name);
-					cookie.setPath(path);
-					cookie.setMaxAge(-1);
-					response.addCookie(cookie);
+					if (status == 3) {
+						String name = userName.replace(' ',  '_');    // Cookie value should not include space
+						cookie = new Cookie("userName", name);
+						cookie.setPath(path);
+						cookie.setMaxAge(-1);
+						response.addCookie(cookie);
+					}
 					responseData = "{\"Message\":\"Done\"}";
 					wellDone = "Y";
 					break;
-				case "01":	// 'Order #' inserted
-					orderId = element.getAsJsonObject().get("orderID").getAsInt();
+				case "01":	// 'Order #' inserted (order & orderItems inquiry)
+					orderId = element.getAsJsonObject().get("orderId").getAsInt();
 					if (readOrder(orderId)) {
 						gson = new GsonBuilder().setDateFormat("yyyy-MM-dd' 'HH:mm:ss").create();			
 						element = gson.toJsonTree(oneOrder);					
@@ -336,7 +329,7 @@ public class SbJpaServlet extends HttpServlet {
 					custId = element.getAsJsonObject().get("custId").getAsInt();
 					if (readCust(custId)) {
 						gson = new GsonBuilder().setDateFormat("yyyy-MM-dd' 'HH:mm:ss").create();			
-						element = gson.toJsonTree(customer);
+						element = gson.toJsonTree(c2);
 						json = (JsonObject) element;		
 						responseData = json.toString();
 						wellDone = "Y";
@@ -360,6 +353,7 @@ public class SbJpaServlet extends HttpServlet {
 				case "06" :	// 'Register Order' clicked
 					json = (JsonObject) element;
 					order = new Order();
+					//
 					order = gson.fromJson(json, Order.class);
 					if (insertOrder(order)) {
 						responseData = "{\"orderId\":"+order.getOrderId()+",";
@@ -375,9 +369,8 @@ public class SbJpaServlet extends HttpServlet {
 					order = new Order();
 					order = gson.fromJson(json, Order.class);
 					if (updateOrder(order)) {
-//						responseData = "{\"taxAmt\":"+order.getTaxAmt+",";
 						responseData = "{\"updName\":\""+order.getUpdName()+"\",";
-						responseData+= "\"updDT\":\""+order.getUpdDt()+"\"}";
+						responseData+= "\"updDt\":\""+order.getUpdDt()+"\"}";
 						wellDone = "Y";
 					}
 					break;
@@ -392,21 +385,8 @@ public class SbJpaServlet extends HttpServlet {
 					orderItem = new OrderItem();
 					orderItem = gson.fromJson(json, OrderItem.class);
 					boolean good = whatEvent.equals("15") ? insertOrderItem(orderItem) : updateOrderItem(orderItem);
-/*					if (good) {
-						order = new Order();
-//						order.setOrderId(orderItem.getOrderId());
-						if (updateOrder(order)) {
-							summary.updName = order.getUpdName();
-							summary.updDt   = order.getUpdDt();
-							gson = new GsonBuilder().setDateFormat("yyyy-MM-dd' 'HH:mm:ss").create();			
-							element = gson.toJsonTree(summary);				
-							json = (JsonObject) element;
-							responseData = json.toString();
-							wellDone = "Y";
-						}
-					} */
 					if (good) {
-						// make responseData
+						responseData = "{\"seq\":\""+orderItem.getSeq()+"\"}";
 						wellDone = "Y";
 					}
 					break;
@@ -432,6 +412,10 @@ public class SbJpaServlet extends HttpServlet {
 			writer.flush();
 			writer.close();
 //			System.out.println("ending doPost()");
+			// if "View Resolver" works instead of sending (JSON) data to client,
+			// write data to "request" and forward control to JSP (not to callback function)
+//			RequestDispatcher rd = request.getRequestDispatcher("/RequestJSP.jsp");    // Path which excludes context path (start with /)
+//			rd.forward(request,  response);
 		}
     }
 }

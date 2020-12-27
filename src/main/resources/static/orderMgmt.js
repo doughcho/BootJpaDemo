@@ -6,11 +6,11 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 	var isEmpl   = false;				// Empl#(Sales Rep#) exists or not
 	var isSeq    = false;     			// Order items seq# exists or not
 	var isItem	 = false;				// Item#  exists or not
-	var orderID  = null;				// for orderID is changed or not
-	var custID	 = null;				// for custID is changed or not
-	var emplID   = null;				// for salesRep is changed or not	
+	var orderId  = null;				// for orderId is changed or not
+	var custId	 = null;				// for custId is changed or not
+	var emplId   = null;				// for salesRep is changed or not	
     var seq      = null;				// for seq. is changed or not
-	var itemID	 = null;				// for itemID is changed or not
+	var itemId	 = null;				// for itemId is changed or not
     var dcAmt    = null;				// for discount is changed or not
 	var jsonStr  = null;				// sending data (JSON format)
 	var USD = new Intl.NumberFormat('en-US', {
@@ -18,22 +18,24 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 		currency: 'USD',				// to USD
 		minimumFractionDigits: 2,       // $999,999.99
 	});									// usage: USD.format(value)
+	const TAX_RATE = 0.0785;
 	const MAX_ROWS = 20;
 	const COLUMNS  = 7; 
 	var customer = {
-		custID: 0,
+		custId: 0,
 		name: '',
-		emplID: 0,
+		emplId: 0,
 		addr: '',
-		taxExmt: false,
 		shipMthd: '1',
+		taxExmt: false,
+		active: true,
 		emplName: ''		// JOIN (employees table)
 	};
 	var order = {
-		orderID: 0,
-		custID: 0,
-		emplID: 0,
-		orderDT: '',
+		orderId: 0,
+		custId: 0,
+		emplId: 0,
+		orderDt: null,
 		comment: '',
 		status: '1',
 		shipMthd: '1',
@@ -41,38 +43,31 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
     	shipPayr: '1',
     	trackNum: '',
     	crName: '',
-    	crDT: '',
+    	crDt: null,
     	updName: '',
-    	updDT: '',
-    	itemCnt: 0,
-    	subTotal: 0.00,
-    	taxAmt: 0.00,
-    	shipChrg: 0.00,
+    	updDt: null,
     	dcAmt: 0.00,
     	paidAmt: 0.00,
-    	taxExmt: false,		// JOIN (customers table)
-     	custName: '',		// JOIN (customers table)
-    	emplName: ''		// JOIN (employees table)
+    	taxExmt: false
+	};
+	var order2 = {
+		itemCnt: 0,			// Accumulation
+		subTotal: 0.00,		// Accumulation
+		taxAmt: 0.00,		// Accumulation
+		custName: '',		// JOIN (customers table)
+		emplName: ''		// JOIN (employees table)
 	};
  	var orderItem = {
-		orderID: 0,
-		seq: 0,
-		itemID: 0,
+		pk: { orderId: 0,
+			  seq: 0
+		},
+		itemId: 0,
 		qty: 0,
 		uPrice: 0.00,
 		comment: '',
-		updDT: '',
-		itemName: ''		// JOIN (items table)
+		updDt: null,
+		itemName: ''		// Join 
 	};
-    var summary = {			// for changed order info. (after 07, 15, 16, 17 event)
-    	orderID: 0,
-    	seq: 0,				// for added orderItem (15)
-    	itemCnt: 0,         // recalculated (server)
-    	subTotal: 0.0,		// recalculated (server)
-    	taxAmt: 0.0,		// recalculated (server)
-		updName: '',
-		updDT: ''
-    };	
 	// HTML table IDs
 	var tIDs = new Array(MAX_ROWS);
 		for (var i = 0; i < MAX_ROWS; i++) tIDs[i] = new Array(COLUMNS);
@@ -94,18 +89,18 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 	}
 	
 	// assign constant variables to all event related fields
-	const t01 = document.getElementById('orderID');	// Order #
+	const t01 = document.getElementById('orderId');	// Order #
 	const t02 = document.getElementById('newBtn');	// Enter a New Order button
-	const t03 = document.getElementById('custID');	// Customer #
+	const t03 = document.getElementById('custId');	// Customer #
 	const t04 = document.getElementById('rctBtn');	// Recent Orders (the customer's)
-	const t05 = document.getElementById('emplID');	// Sales Rep.
+	const t05 = document.getElementById('emplId');	// Sales Rep.
 	const t06 = document.getElementById('addBtn');	// Register Order button
 	const t07 = document.getElementById('chgBtn');	// Change Order button
 	const t08 = document.getElementById('canBtn');	// Cancel Order button
 	const t09 = document.getElementById('dcAmt');	// Discount
 	const t10 = document.getElementById('seq');	    // Seq.
 	const t11 = document.getElementById('inewBtn');	// Enter a New Item button
-	const t12 = document.getElementById('itemID');	// Item #
+	const t12 = document.getElementById('itemId');	// Item #
 	const t13 = document.getElementById('qty');	    // Quantity	
 	const t14 = document.getElementById('uPrice');	// Unit Price
 	const t15 = document.getElementById('iaddBtn');	// Add Item button
@@ -114,7 +109,7 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 	const t18 = document.getElementById('trkBtn');	// Track Package button		
 	const d01 = document.getElementById('custName');// Cust. Name (display only)
 	const d02 = document.getElementById('emplName');// Rep. Name  (display only)
-	const d03 = document.getElementById('orderDT'); // Order Date
+	const d03 = document.getElementById('orderDt'); // Order Date
 	const d04 = document.getElementById('shipAddr');// Ship Addr.
 	const d05 = document.getElementById('itemName');// Item Desc. (display only)
 	const d06 = document.getElementById('icomment');// comment (orderItem)
@@ -123,20 +118,20 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 	t01.focus();
     
 	t01.addEventListener('focusin', function() {
-		orderID = t01.value;
+		orderId = t01.value;
 	});
 	t01.addEventListener('keyup', function(event) {
 		event.preventDefault();
 		if (event.keyCode == 13) t03.focus();
 	});
 	t01.addEventListener('focusout', function() {
-		var ordID = t01.value;
-		if (ordID == orderID) return;
+		var ordId = t01.value;
+		if (ordId == orderId) return;
 		clearAll();
-		t01.value = orderID = ordID;
-		if (orderID == '') return;
+		t01.value = orderId = ordId;
+		if (orderId == '') return;
 		savedPos = t01;
-		jsonStr = '{"orderID":'+orderID+'}';
+		jsonStr = '{"orderId":'+orderId+'}';
 		callServlet('01');
 	});
 	
@@ -148,46 +143,46 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 	});
 
 	t03.addEventListener('focusin', function() {
-		custID = t03.value;
+		custId = t03.value;
 	});
 	t03.addEventListener('keyup', function(event) {
 		event.preventDefault();
 		if (event.keyCode == 13) t04.focus();
 	});
 	t03.addEventListener('focusout', function() {
-		var cuID = t03.value;
-		if (cuID == custID) return;
-		custID = cuID;
+		var cuId = t03.value;
+		if (cuId == custId) return;
+		custId = cuId;
 		isCust = false;
 		d01.value = t05.value = d02.value = d04.value = '';		
-		if (custID == '') return;
+		if (custId == '') return;
 		savedPos = t03;
-		jsonStr = '{"custID":'+custID+'}';
+		jsonStr = '{"custId":'+custId+'}';
 		callServlet('03');
 	});
 
 	t04.addEventListener('click', function() {
 		if (!isCust) {
-			alert('custID '+t03.value+' does not exist');
+			alert('custId '+t03.value+' does not exist');
 			return;
 		}
-		setCookie('custID', t03.value);
+		setCookie('custId', t03.value);
 		setCookie('whatFunc', '9');
 		var pOption = 'width=450, height=350, left=680, top=255, toolbar=no, menubar=no, scrollbars=no, location=no, titlebar = no, status=no, resizable=no, fullscreen=no';
 		var new_window = window.open('custOrder.html', 'custOrdPopup', pOption);
 		new_window.onbeforeunload = function() {
-			var ordID = getCookie('orderID');
-			if (ordID == '999999') return;
-			if (t01.value == ordID) return;
-			orderID = t01.value = ordID;
+			var ordId = getCookie('orderId');
+			if (ordId == '999999') return;
+			if (t01.value == ordId) return;
+			orderId = t01.value = ordId;
 			savedPos = t01;
-			jsonStr = '{"orderID":'+orderID+'}';
+			jsonStr = '{"orderId":'+orderId+'}';
 			callServlet('01');
 		}	
 	});
 	
 	t05.addEventListener('focusin', function() {
-		emplID = t05.value;
+		emplId = t05.value;
 	});
 	t05.addEventListener('keyup', function(event) {
 		event.preventDefault();
@@ -195,13 +190,13 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 	});
 	t05.addEventListener('focusout', function() {
 		var sales = t05.value;
-		if (sales == emplID) return;
-		emplID = sales;
+		if (sales == emplId) return;
+		emplId = sales;
 		d02.value = '';
 		isEmpl = false;
-		if (emplID == '') return;
+		if (emplId == '') return;
 		savedPos = t05;
-		jsonStr = '{"emplID":'+emplID+'}';					
+		jsonStr = '{"emplId":'+emplId+'}';					
 		callServlet('05');
 	});
 
@@ -212,7 +207,7 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 			return;
 		}
 		getOrderData();
-		order.orderID = 0;          // 0 and '' is different in Java 
+		order.orderId = 0;          // 0 and '' is different in Java 
    		jsonStr = JSON.stringify(order);
 		callServlet('06');
 	});
@@ -232,7 +227,7 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 			alert('You need to have an order to cancel');
 			return;
 		}
-		jsonStr = '{"orderID":'+orderID+'}';
+		jsonStr = '{"orderId":'+orderId+'}';
 		callServlet('08');
 	});
 	
@@ -272,7 +267,7 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 		seq = sq;
 		if (!isOrder) return;
 		var itemPos = getItemPos(seq);
-		if (itemPos < order.itemCnt) showOrderItem(itemPos);
+		if (itemPos < order2.itemCnt) showOrderItem(itemPos);
 		else {
 			clearOrderItem();
 			t10.value = seq = sq;
@@ -286,7 +281,7 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 			alert('You need to select an order first');
 			return;
 		}
-		if (order.itemCnt == MAX_ROWS) {
+		if (order2.itemCnt == MAX_ROWS) {
 			alert('Maximum item count is ' + MAX+ROWS);
 			return;
 		}
@@ -297,7 +292,7 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 	});
 
 	t12.addEventListener('focusin', function() {
-		if (isOrder) itemID = t12.value;
+		if (isOrder) itemId = t12.value;
 		else alert('You need to select an order first');		
 	});
 	t12.addEventListener('keyup', function(event) {
@@ -305,15 +300,15 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 		if (event.keyCode == 13) t13.focus();
 	});
 	t12.addEventListener('focusout', function() {
-		var itmID = t12.value;
-		if (itmID == itemID) return;
-		itemID = itmID;
+		var itmId = t12.value;
+		if (itmId == itemId) return;
+		itemId = itmId;
 		if (!isOrder) return;
 		isItem = false;
 		d05.value = '';
-		if (itemID == '') return;
+		if (itemId == '') return;
 		savedPos = t12;
-		jsonStr = '{"itemID":'+itemID+'}';		
+		jsonStr = '{"itemId":'+itemId+'}';		
 	    callServlet('12');
 	});
 
@@ -347,7 +342,7 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 			return;
 		}
 		getItemData();
-		orderItem.seq = 0;          // 0 and '' is different in Java 
+		orderItem.pk.seq = 0;          // 0 and '' is different in Java 
    		jsonStr = JSON.stringify(orderItem);
 		callServlet('15');
 	});
@@ -375,7 +370,8 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 			alert('You need to enter existing seq #');
 			return;
 		}
-		jsonStr = '{"orderID":'+orderID+', "seq":'+seq+'}';
+		getItemData();
+  		jsonStr = JSON.stringify(orderItem);		
 		callServlet('17');
 	});
 
@@ -389,10 +385,10 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 	});
 	
 	function getOrderData() {
-		order.orderID = t01.value;
-		order.custID  = t03.value;
-		order.emplID  = t05.value;		    
-		order.orderDT = d03.value;
+		order.orderId = t01.value;
+		order.custId  = t03.value;
+		order.emplId  = t05.value;		    
+		order.orderDt = d03.value;
 		order.comment = document.getElementById('comment').value;
 		order.status  = document.getElementById('status').value;
 		order.shipMthd= document.getElementById('shipMthd').value;
@@ -400,12 +396,13 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 		order.shipPayr= document.getElementById('shipPayr').value;
 	}
 	function getItemData() {
-		orderItem.orderID = t01.value;
-		orderItem.seq     = t10.value;
-		orderItem.itemID  = t12.value;		    
-		orderItem.qty 	  = t13.value;
-		orderItem.uPrice  = t14.value;
-		orderItem.comment = d06.value;
+		orderItem.pk.orderId = t01.value;
+		orderItem.pk.seq     = t10.value;
+		orderItem.itemId  	 = t12.value;		    
+		orderItem.qty 	  	 = t13.value;
+		orderItem.uPrice     = t14.value;
+		orderItem.comment    = d06.value;
+		orderItem.itemName   = d05.value;
 	}
 	
 	function setIDs(rows) {
@@ -420,20 +417,20 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 		}
 	}
 	function setRowValue(row) {
-		tVal[row][0] = orderItem.seq;
-		tVal[row][1] = orderItem.itemID;
+		tVal[row][0] = orderItem.pk.seq;
+		tVal[row][1] = orderItem.itemId;
 		tVal[row][2] = orderItem.itemName;
 		tVal[row][3] = orderItem.qty;
 		tVal[row][4] = orderItem.uPrice;
 		tVal[row][5] = tVal[row][3] * tVal[row][4];
-		tVal[row][6] = orderItem.comment;	
+		tVal[row][6] = orderItem.comment;
 	}
 		    
 	function clearAll() {
 		clearOrder();
 		showDetails(0);
 		clearOrderItem();
-		order.itemCnt = order.subTotal = order.taxAmt = order.shipChrg = order.dcAmt = order.paidAmt = 0;
+		order2.itemCnt = order2.subTotal = order2.taxAmt = order.shipChrg = order.dcAmt = order.paidAmt = 0;
 		showSummary();
 	}
 	function clearOrder() {		
@@ -448,33 +445,33 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 		document.getElementById('comment').value = '';
 		document.getElementById('trackNum').value = '';		    
     	document.getElementById('crName').value = '';
-    	document.getElementById('crDT').value = '';	
+    	document.getElementById('crDt').value = '';	
     	document.getElementById('updName').value = '';
-    	document.getElementById('updDT').value = '';
-		orderID = custID = emplID = '';
+    	document.getElementById('updDt').value = '';
+		orderId = custId = emplId = '';
 		isOrder = isCust = isEmpl = t06.disabled = false;
 		t07.disabled = t08.disabled = true;
 	}
 	function clearOrderItem() {		
 		t10.value = t12.value = t14.value = d05.value = t13.value = d06.value = '';
 		document.getElementById('amount').value = '';
-		seq = itemID = '';
+		seq = itemId = '';
 		isSeq = isItem = t15.disabled = false;
 		t16.disabled = t17.disabled = true;
 	}
 	
 	function showAll() {
 		showOrder();
-		showDetails(order.itemCnt);
+		showDetails(order2.itemCnt);
 		clearOrderItem();
-		showSummary();		
+		showSummary();
 	}
 	function showOrder() {
-		t03.value = custID = order.custID;
-		d01.value = order.custName;
-		t05.value = emplID = order.emplID;
-		d02.value = order.emplName;
-		d03.value = order.orderDT;
+		t03.value = custId = order.custId;
+		d01.value = order2.custName;
+		t05.value = emplId = order.emplId;
+		d02.value = order2.emplName;
+		d03.value = order.orderDt;
 		document.getElementById('status').value   = order.status;
 		document.getElementById('shipMthd').value = order.shipMthd;
 		document.getElementById('shipPayr').value = order.shipPayr;
@@ -482,15 +479,15 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 		document.getElementById('comment').value  = order.comment;
 		document.getElementById('trackNum').value = order.trackNum;		    
     	document.getElementById('crName').value   = order.crName;
-    	document.getElementById('crDT').value	  = order.crDT;
+    	document.getElementById('crDt').value	  = order.crDt;
     	document.getElementById('updName').value  = order.updName;
-    	document.getElementById('updDT').value    = order.updDT;		
+    	document.getElementById('updDt').value    = order.updDt;
 		isOrder = isCust = isEmpl = t06.disabled  = true;
 		t01.disabled = t07.disabled = t08.disabled= false;
 	}
 	function showOrderItem(pos) {
 		t10.value = seq = tVal[pos][0];
-		t12.value = itemID = tVal[pos][1];
+		t12.value = itemId = tVal[pos][1];
 		d05.value = tVal[pos][2];
 		t13.value = tVal[pos][3];
 		t14.value = tVal[pos][4];
@@ -500,8 +497,8 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 		t16.disabled = t17.disabled = false;	    
 	}
 	function getItemPos(seq) {
-		var row = order.itemCnt;
-		for (var i = 0; i < order.itemCnt; i++) {
+		var row = order2.itemCnt;
+		for (var i = 0; i < order2.itemCnt; i++) {
 			if (tVal[i][0] == seq) {
 				row = i;
 				break;
@@ -510,12 +507,11 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 		return row;
 	}
 	function adjustDetails() {
-		var row = getItemPos(orderItem.seq);
-		alert('orderItem.seq is '+orderItem.seq+', row is '+row);
-		if (row == order.itemCnt) return;	// deleted orderItem is the last one
+		var row = getItemPos(orderItem.pk.seq);
+		if (row == order2.itemCnt) return;	// deleted orderItem is the last one
 		if (getCookie('whatEvent') == '16') setRowValue(row);
 		else {								// deleted item is in the middle
-			for (var i = row; i < (order.itemCnt + 1); i++) {
+			for (var i = row; i < order2.itemCnt; i++) {
 				for (var j = 0; j < COLUMNS; j++) tVal[i][j] = tVal[i+1][j];
 			}
 		}
@@ -535,12 +531,19 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 			for (var j = 0; j < COLUMNS; j++) tIDs[i][j].innerHTML = '';
 		}
 	}
+	function aggregateTotal() {
+		order2.subTotal = 0;
+		for (var i = 0; i < order2.itemCnt; i++) {
+			order2.subTotal += tVal[i][5];
+		}
+		order2.taxAmt = (order.taxExmt) ? 0.0 : (order2.subTotal * TAX_RATE);
+	}
 	function showSummary() {
-		var total = order.subTotal + order.taxAmt + order.shipChrg - order.dcAmt;
+		var total = order2.subTotal + order2.taxAmt + order.shipChrg - order.dcAmt;
 		var remained = total - order.paidAmt;
-		document.getElementById('itemCnt').value  = order.itemCnt;
-		document.getElementById('subTotal').value = USD.format(order.subTotal);
-		document.getElementById('taxAmt').value   = USD.format(order.taxAmt);
+		document.getElementById('itemCnt').value  = order2.itemCnt;
+		document.getElementById('subTotal').value = USD.format(order2.subTotal);
+		document.getElementById('taxAmt').value   = USD.format(order2.taxAmt);
 		document.getElementById('shipChrg').value = USD.format(order.shipChrg);
 		t09.value = dcAmt = order.dcAmt;			
 		document.getElementById('total').value 	  = USD.format(total);
@@ -579,73 +582,74 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 //        		alert('success function is running');
      			switch (eventID) {
      				case '01': 				// 'Order #' inserted
- 						json  = JSON.stringify(response.ord);
- 						order = JSON.parse(json);
- 						for (var i = 0; i < order.itemCnt; i++) {
- 						    json = JSON.stringify(response.ordItem[i]);
+ 						json = JSON.stringify(response.ord.order);
+ 						order  = JSON.parse(json);
+						order2.itemCnt  = response.ord.itemCnt;
+						order2.subTotal = response.ord.subTotal;
+						order2.taxAmt   = response.ord.taxAmt;
+						order2.custName = response.ord.custName;
+						order2.emplName = response.ord.emplName;
+ 						for (var i = 0; i < order2.itemCnt; i++) {
+ 						    json = JSON.stringify(response.ordItem[i].orderItem);
  							orderItem = JSON.parse(json);
+ 							orderItem.itemName = response.ordItem[i].itemName;
  							setRowValue(i);
  						}
  						showAll();
      					break;
-     				case '03': 				// 'Customer #' inserted
- 						json = JSON.stringify(response);
- 						customer = JSON.parse(json);   				
-						order.custID   = customer.custID;
-						order.custName = d01.value = customer.name;
-						order.emplID   = emplID = t05.value = customer.emplID;
-						order.emplName = d02.value = customer.emplName;
-						order.shipMthd = document.getElementById('shipMthd').value = customer.shipMthd;
+     				case '03': 				// 'Customer #' inserted (customer code inquiry)
+						json = JSON.stringify(response.customer);
+ 						customer = JSON.parse(json); 				
+						order.custId   = customer.custId;
+						order2.custName= d01.value = customer.name;
+						order.emplId   = emplId = t05.value = customer.emplId;
+						order2.emplName= d02.value = customer.emplName = response.emplName;
 						order.shipAddr = d04.value = customer.addr;
+						order.shipMthd = document.getElementById('shipMthd').value = customer.shipMthd;
 						order.taxExmt  = customer.taxExmt;
 						isCust = isEmpl= true;
      					break;
      				case '05': 				// 'Sales Rep.' inserted
-						order.emplName = d02.value = response.emplName;
+						order2.emplName = d02.value = response.emplName;
 						isEmpl = true;
      					break;
      				case '06': 				// 'Register Order' clicked
-						order.orderID = orderID = t01.value = response.orderID;
+						order.orderId = orderId = t01.value = response.orderId;
 						order.crName  = document.getElementById('crName').value = response.crName;
-						order.crDT    = document.getElementById('crDT').value   = response.crDT;
+						order.crDt    = document.getElementById('crDt').value   = response.crDt;
 						alert('New order registered successfully');
 						t07.disabled = t08.disabled = false;
 						isOrder = t06.disabled = true;
 						t11.focus();
      					break;
      				case '07': 				// 'Change Order' clicked
+						order2.taxAmt = (order.taxExmt) ? 0.0 : (order2.subTotal * TAX_RATE);
      				case '08':				// 'Cancel Order' clicked
-						if (eventID == '07') order.taxAmt  = response.taxAmt;
-						else order.status = document.getElementById('status').value = '9';
 						t01.focus();
      				case '09':				// 'DcAmt' changed
 						order.updName = document.getElementById('updName').value = response.updName;
-						order.updDT   = document.getElementById('updDT').value   = response.updDT;
-						if (eventID != '08') showSummary();
+						order.updDt   = document.getElementById('updDt').value   = response.updDt;
+						if (eventID == '08') order.status = document.getElementById('status').value = '9';
+						else showSummary();
      					break;
      				case '12':				// 'Item #' inserted
 						orderItem.itemName = d05.value = response.itemName;
 			            isItem = true;
      					break;
-     				case '15':				// 'Add Item' clicked
-     				case '16':				// 'Change Item' clicked
-     				case '17':				// 'Delete Item' clicked
- 						json = JSON.stringify(response);
- 						summary = JSON.parse(json);
- 						orderItem.seq = t10.value = summary.seq;
- 						order.itemCnt = summary.itemCnt;
- 						order.subTotal= summary.subTotal; 
- 						order.taxAmt  = summary.taxAmt;
- 						if (eventID == '15') {
- 							isSeq = isItem = t15.disabled = true;
-							t16.disabled = t17.disabled = false;
- 							setRowValue(order.itemCnt - 1);
- 						} else {
-							order.updName = document.getElementById('updName').value = summary.updName;
-							order.updDT   = document.getElementById('updDT').value   = summary.updDT;
-							adjustDetails();
+     				case '15':				// 'Add OrderItem' clicked
+ 						orderItem.pk.seq = t10.value = response.seq;
+ 						setRowValue(order2.itemCnt);
+ 						++order2.itemCnt;
+ 						isSeq = isItem = t15.disabled = true;
+						t16.disabled = t17.disabled = false;
+     				case '16':				// 'Change OrderItem' clicked
+     				case '17':				// 'Delete OrderItem' clicked 
+ 						if (eventID != '15') {
+ 							adjustDetails();
+ 							if (eventID == '17') --order2.itemCnt;
  						}
- 						showDetails(order.itemCnt);					 						
+ 						showDetails(order2.itemCnt);
+ 						aggregateTotal();				
 						showSummary();
 						if (eventID == '17') clearOrderItem();
 						t10.focus();

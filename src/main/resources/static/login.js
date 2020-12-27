@@ -9,13 +9,13 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 		window.close();
 		return;
 	}
-	document.getElementById('userID').focus();
+	document.getElementById('userId').focus();
 	const t = document.getElementById('login');
 	t.addEventListener('click', function() {
 //		alert('Login button clicked');                      // for debugging
-		var userID = document.getElementById('userID').value;
+		var userId = document.getElementById('userId').value;
 		var passwd = document.getElementById('passwd').value;
-		var jsonStr = '{"userID":"'+userID+'","passwd":"'+passwd+'"}'
+		var jsonStr = '{"userId":"'+userId+'","passwd":"'+passwd+'"}'
 		setCookie('whatEvent', "00");
 		$.ajax({                        // Performs all the async comm. part (Client <-> Server)
 			type: 'get',
@@ -41,11 +41,11 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 						setCookie('whatFunc', '9'); // to prevent external use of 'Login.html'
 						break;
      				case '2':
-     					alert('User ID inactive');
+     					alert('User Id inactive');
      					break;		
      				case '1':
      				case '0':
-     					alert('User ID and/or password not match');
+     					alert('User Id and/or password not match');
      					break;
      				default:
      					alert('Some abnormal situation happened');

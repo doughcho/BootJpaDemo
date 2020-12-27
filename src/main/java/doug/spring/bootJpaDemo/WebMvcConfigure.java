@@ -13,7 +13,7 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
 @ComponentScan(basePackages = "doug.spring.bootJpaDemo")
 public class WebMvcConfigure implements WebMvcConfigurer {
 
-  @Bean		// the function is needed for using @Value annotation
+  @Bean			// the function is needed for using @Value annotation
   public static PropertySourcesPlaceholderConfigurer propertySourcePlaceholderConfigurer() {
 	  return new PropertySourcesPlaceholderConfigurer();
   }
@@ -29,4 +29,5 @@ public class WebMvcConfigure implements WebMvcConfigurer {
   public void addViewControllers(ViewControllerRegistry registry) {
 	  registry.addViewController("/").setViewName("forward:/index.html");
   }
+  
 }

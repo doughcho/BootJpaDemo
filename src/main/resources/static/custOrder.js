@@ -38,58 +38,58 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 	endBtn.focus();	
     
 	endBtn.addEventListener('click', function() {
-		setCookie('orderID', '999999');
+		setCookie('orderId', '999999');
 		window.close();
 		return;
 	});
 
 	selBtn0.addEventListener('click', function() {
-		setCookie('orderID', String(tVal[0][0]));
+		setCookie('orderId', String(tVal[0][0]));
 		self.close();
 		return;
 	});
 	selBtn1.addEventListener('click', function() {
-		setCookie('orderID', String(tVal[1][0]));
+		setCookie('orderId', String(tVal[1][0]));
 		self.close();
 		return;
 	});
 	selBtn2.addEventListener('click', function() {
-		setCookie('orderID', String(tVal[2][0]));
+		setCookie('orderId', String(tVal[2][0]));
 		self.close();
 		return;
 	});
 	selBtn3.addEventListener('click', function() {
-		setCookie('orderID', String(tVal[3][0]));
+		setCookie('orderId', String(tVal[3][0]));
 		self.close();
 		return;
 	});
 	selBtn4.addEventListener('click', function() {
-		setCookie('orderID', String(tVal[4][0]));
+		setCookie('orderId', String(tVal[4][0]));
 		self.close();
 		return;
 	});
 	selBtn5.addEventListener('click', function() {
-		setCookie('orderID', String(tVal[5][0]));
+		setCookie('orderId', String(tVal[5][0]));
 		self.close();
 		return;
 	});
 	selBtn6.addEventListener('click', function() {
-		setCookie('orderID', String(tVal[6][0]));
+		setCookie('orderId', String(tVal[6][0]));
 		self.close();
 		return;
 	});
 	selBtn7.addEventListener('click', function() {
-		setCookie('orderID', String(tVal[7][0]));
+		setCookie('orderId', String(tVal[7][0]));
 		self.close();
 		return;
 	});
 	selBtn8.addEventListener('click', function() {
-		setCookie('orderID', String(tVal[8][0]));
+		setCookie('orderId', String(tVal[8][0]));
 		self.close();
 		return;
 	});
 	selBtn9.addEventListener('click', function() {
-		setCookie('orderID', String(tVal[9][0]));
+		setCookie('orderId', String(tVal[9][0]));
 		self.close();
 		return;
 	});
@@ -117,8 +117,8 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 	}
 	
 	function callServlet() {
-		var custID  = getCookie('custID');
-		var jsonStr = '{custID:'+custID+',maxCnt:'+MAX_ROWS+'}';
+		var custId  = getCookie('custId');
+		var jsonStr = '{custId:'+custId+',maxCnt:'+MAX_ROWS+'}';
 		setCookie('whatEvent', '04');
 		$.ajax({                    // Performs all the async comm. part (Client <-> Server)
 			type: 'get',			// 'post' cannot send JSON data..  why?
@@ -139,10 +139,10 @@ $(document).ready(function() {         	// Performs just after creating DOM tree
 //        		alert('success function is running');
 				var cnt = response.ordCnt;
  				for (var i = 0; i < cnt; i++) {
-					tVal[i][0] = response.cOrds[i].orderID;
-					var str = response.cOrds[i].date;
-					tVal[i][1] = str.substr(5, 2) + '//';
-					tVal[i][1]+= str.substr(8, 2) + '//';
+					tVal[i][0] = response.cOrds[i].orderId;
+					var str = response.cOrds[i].orderDt;
+					tVal[i][1] = str.substr(5, 2) + '/';
+					tVal[i][1]+= str.substr(8, 2) + '/';
 					tVal[i][1]+= str.substr(0, 4);
  				}
  				showDetails(cnt);

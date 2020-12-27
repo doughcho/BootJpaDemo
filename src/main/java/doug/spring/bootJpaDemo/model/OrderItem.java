@@ -1,7 +1,6 @@
 package doug.spring.bootJpaDemo.model;
 
 import java.io.Serializable;
-import java.sql.Date;
 import lombok.*;
 import javax.persistence.*;
 
@@ -25,7 +24,7 @@ public class OrderItem implements Serializable {
 	@Column(name = "COMMT")
 	private String comment;
 	@Column(name = "UPDDT")
-	private Date updDt;
+	private String updDt;
 //	@ManyToOne
 //	@JoinColumn(name = "ITEM_ID", insertable = false, updatable = false)
 //	private Item item;	// for itemName

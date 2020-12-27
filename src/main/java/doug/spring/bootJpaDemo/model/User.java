@@ -18,7 +18,7 @@ public class User implements Serializable {
 	private String userId;
 	@Column(name = "PASSWORD")
 	private String password;
-	@Column(name = "ISACTIVE")
+	@Column(name = "ACTIVE")
 	private boolean active;
 	@Column(name = "NAME")
 	private String name;

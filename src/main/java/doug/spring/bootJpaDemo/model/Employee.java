@@ -24,9 +24,9 @@ public class Employee implements Serializable {
 	private int emplDept;
 	@Column(name = "MGR")
 	private int emplMgr;
-	@Column(name = "TEL")
+	@Column(name = "TEL", nullable = true)
 	private String emplTel;
-	@Column(name = "EMAIL")
+	@Column(name = "EMAIL", nullable = true)
 	private String emplEmail;
 	@Column(name = "ACTIV")	
 	private boolean active;

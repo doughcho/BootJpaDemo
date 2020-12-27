@@ -1,8 +1,6 @@
 package doug.spring.bootJpaDemo.model;
 
 import java.io.Serializable;
-import java.sql.Date;
-//import java.util.List;
 import javax.persistence.*;
 import lombok.*;
 
@@ -23,7 +21,7 @@ public class Order implements Serializable {
 	@Column(name = "EMPL_ID")	
 	private int emplId;
 	@Column(name = "ODATE")
-	private Date orderDt;
+	private String orderDt;
 	@Column(name = "COMMT")
 	private String comment;
 	@Column(name = "OSTAT")
@@ -32,18 +30,18 @@ public class Order implements Serializable {
 	private String shipMthd;
 	@Column(name = "SADDR")
 	private String shipAddr;
-	@Column(name = "OPAYR")
+	@Column(name = "SPAYR")
 	private String shipPayr;
 	@Column(name = "TRACK")
 	private String trackNum;
 	@Column(name = "CRNM")
 	private String crName;		
 	@Column(name = "CRDT")
-	private Date crDt;
+	private String crDt;
 	@Column(name = "UPDNM")
 	private String updName;
 	@Column(name = "UPDDT")
-	private Date updDt;
+	private String updDt;
 	@Column(name = "SHCHG")
     private float   shipChrg;
 	@Column(name = "DCAMT")
