@@ -1,13 +1,12 @@
 # BootJpaDemo
-The master branch of Web demo project using Spring Data JPA
-WebApp demo project using Java EE and HTML-CSS-JavaScript. The db handling is covered through JPA
+The master branch of Web demo project using Spring Data JPA, Java EE and HTML-CSS-JavaScript. The db handling is covered through JPA
 
 Motivation
 - To hava a practical implementation experience about JPA and build orthodox MVC framework model
 
 Build Status
 - Used Spring Starter Project architecture
-- DI: Spring Data JPA (which include Hibernate) and Lombok
+- DI: Spring Data JPA (which includes Hibernate) and Lombok
 
 Code Style
 - Microservices architecture (using Spring Boot framework)
