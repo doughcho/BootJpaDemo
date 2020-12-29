@@ -25,6 +25,6 @@ Running Environment
 - Web Browser: Anyone except IE (tested on Chrome)
 - WS/WAS: Apache Tomcat v9.0 Server
 - DBMS: MySQL Server (version: 8.0.21)
-- JDBC: MySQL Connector-Java 8.0.21
+- DI: Spring Data JPA, Lombok
 - jQuery: jQuery-3.5.1 (from code.jquery.com)
 - JSON: gson-2.8.6 (from search.maven.org)
